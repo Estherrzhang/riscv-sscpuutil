@@ -2227,6 +2227,15 @@ defined behavior as if this extension is not implemented. Further, if the H
 extension is implemented, then `hip`.VSTIP also reverts its defined behavior as
 if this extension is not implemented.#
 
+[#norm:menvcfg_atime_op1]#The Ssacttime extension adds the `ATIME` (Active Time Enable) bit to the `menvcfg` CSR.#
+[#norm:menvcfg_atime_rdonly0_op]#When the Ssacttime extension is not implemented, `ATIME` is read-only zero.#
+[#norm:menvcfg_atime_op2]#The `ATIME` bit enables the supervisor-level and
+hypervisor-level active-time CSRs added by Ssacttime when set to one. When this
+extension is implemented and `ATIME` in `menvcfg` is zero, an attempt to access
+`sacttime`, `sacttimeh`, `hacttime`, or `hacttimeh` in a mode other than M-mode
+raises an illegal-instruction exception, and `ATIME` in `henvcfg` is read-only
+zero.#
+
 [#norm:menvcfg_cbze_op]#The Zicboz extension adds the `CBZE` (Cache Block Zero instruction enable) field
 to `menvcfg`. When the `CBZE` field is set to 1, it enables execution of the
 cache block zero instruction, `CBO.ZERO`, in modes less privileged than M.

@@ -241,6 +241,11 @@ Note that not all registers are required on all implementations.
 |`0x14D` |SRW |csr:stimecmp[]  |Supervisor timer compare
 |`0x15D` |SRW |csr:stimecmph[] |Upper qty:32[bits] of csr:stimecmp[], RV32 only
 
+4+^|Supervisor Active Time
+
+|`0xD83` |SRO |csr:sacttime[]  |Supervisor-level alias of the active-time counter
+|`0xD93` |SRO |csr:sacttimeh[] |Upper qty:32[bits] of csr:sacttime[], RV32 only
+
 4+^|Debug/Trace Registers
 
 |`0x5A8` |SRW |csr:scontext[] |Supervisor-mode context register
@@ -308,6 +313,8 @@ Note that not all registers are required on all implementations.
 
 |`0x605` |HRW |csr:htimedelta[]  |Delta for VS/VU-mode timer
 |`0x615` |HRW |csr:htimedeltah[] |Upper qty:32[bits] of csr:htimedelta[], RV32 only
+|`0x683` |HRW |csr:hacttime[]    |Active time for VS-mode
+|`0x693` |HRW |csr:hacttimeh[]   |Upper qty:32[bits] of csr:hacttime[], RV32 only
 
 4+^|Hypervisor State Enable Registers
 
@@ -449,6 +456,11 @@ Note that not all registers are required on all implementations.
 |`0x741` |MRW |csr:mnepc[]     |Resumable NMI program counter
 |`0x742` |MRW |csr:mncause[]   |Resumable NMI cause
 |`0x744` |MRW |csr:mnstatus[]  |Resumable NMI status
+
+4+^|Machine Active Time
+
+|`0x783` |MRW |csr:mnacttime[]  |Active time of the next-lower privilege mode
+|`0x793` |MRW |csr:mnacttimeh[] |Upper qty:32[bits] of csr:mnacttime[], RV32 only
 
 4+^|Machine Counter/Timers
 

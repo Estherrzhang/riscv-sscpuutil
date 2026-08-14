@@ -688,7 +688,8 @@ mode V=1.
   {bits:  1, name: 'CBZE'},
   {bits: 24, name: 'WPRI'},
   {bits:  2, name: 'PMM'},
-  {bits: 25, name: 'WPRI'},
+  {bits: 24, name: 'WPRI'},
+  {bits:  1, name: 'ATIME'},
   {bits:  1, name: 'DTE'},
   {bits:  1, name: 'WPRI'},
   {bits:  1, name: 'ADUE'},
@@ -749,6 +750,16 @@ enables `vstimecmp` for VS-mode when set to one. When `STCE` bit is `henvcfg` is
 zero, an attempt to access `stimecmp` (really `vstimecmp`) when V=1 raises a
 virtual-instruction exception, and `VSTIP` in `hip` reverts to its defined behavior
 as if this extension is not implemented.
+
+[[norm:henvcfg_atime]]
+The Ssacttime extension adds the `ATIME` (Active Time Enable) bit to `henvcfg`
+CSR. When the Ssacttime extension is not implemented, `ATIME` is read-only zero.
+The `ATIME` bit enables `sacttime` and `sacttimeh` for VS-mode when set to one,
+in which case a VS-mode read of `sacttime` returns `hacttime`. When `ATIME` in
+`henvcfg` is zero, an attempt to access `sacttime` or `sacttimeh` when V=1 raises
+a virtual-instruction exception. A hypervisor that sets `ATIME` must also present
+a per-virtual-hart value of the delivered counter, which requires `hcounteren`.CY
+to be zero; see <<ssacttime_delivered_pairing>>.
 
 [[norm:henvcfg_cbze]]
 The Zicboz extension adds the `CBZE` (Cache Block Zero instruction enable) field
