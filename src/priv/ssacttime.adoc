@@ -1,0 +1,138 @@
+[[Ssacttime]]
+=== ext:ssacttime[] Extension for Supervisor-Level Active Time, Version 1.0
+
+The active-time counter added by ext:smnacttime[] (<<Smnacttime>>) is a
+machine-level CSR. Supervisor software computes the effective operating
+frequency of a hart from the ratio of the increments of csr:cycle[] and of the
+active-time counter, and must therefore be able to read the latter directly,
+without trapping to M-mode on its scheduler hot path. ext:ssacttime[] provides
+that access.
+
+The extension name is ext:ssacttime[] ("`Ss`" for Privileged arch and
+Supervisor-level extensions, and "`acttime`" for active time).
+[#norm:ssacttime_exist]#ext:ssacttime[] adds the read-only supervisor-level CSR
+`sacttime`, and, for RV32, `sacttimeh`.# [#norm:ssacttime_atime_exist]#This
+extension adds the `ATIME` bit to the csr:menvcfg[] (<<sec:menvcfg>>) and
+csr:henvcfg[] (<<sec:henvcfg>>) CSRs.#
+[#norm:ssacttime_hacttime_exist]#When the hypervisor extension is implemented,
+ext:ssacttime[] additionally adds the read/write hypervisor-level CSR
+`hacttime`, and, for RV32, `hacttimeh`.#
+
+[#norm:ssacttime_requires_smnacttime]#A hart implementing ext:ssacttime[] MUST
+also implement ext:smnacttime[].#
+
+==== Supervisor-Level Alias of the Active Time Counter (`sacttime`)
+
+[#norm:sacttime_reads_mnacttime]#When the virtualization mode V=0, a read of
+`sacttime` returns the value of the active-time counter of the hart executing the
+read, that is, the value that a read of `mnacttime` would return.#
+[#norm:sacttimeh_reads_mnacttimeh]#On RV32, a read of `sacttimeh` returns the
+upper 32 bits of that value.#
+
+[#norm:sacttime_readonly]#`sacttime` and `sacttimeh` are read-only; an attempt
+to write either CSR raises an illegal-instruction exception.#
+
+[#norm:sacttime_rv32_read]#On RV32, software reads the full 64-bit value using
+the same atomic read convention defined for the csr:cycle[] and csr:time[]
+counters in ext:zicntr[]: read the upper half, then the lower half, then re-read
+the upper half, and repeat the sequence if the two reads of the upper half
+differ.#
+
+[#norm:sacttime_no_user_alias]#ext:ssacttime[] does not add a user-level alias
+of the active-time counter.#
+
+NOTE: The absence of a user-level alias is deliberate. The counter exists to let
+the supervisor compute a frequency-scaling factor for its scheduler; exposing a
+second monotonically advancing counter to U-mode would widen the timing
+side-channel surface without serving that purpose. Note also that the
+_delivered_ counter of the pair, csr:cycle[], is separately gated for U-mode by
+csr:mcounteren[].CY and csr:scounteren[].CY, and that supervisor software is
+expected to leave csr:scounteren[].CY clear when it relies on csr:cycle[] for
+frequency computation.
+
+[[ssacttime_virtualization]]
+==== Virtualization of the Active Time Counter (`hacttime`)
+
+A guest OS running in VS-mode must observe the active time of its own virtual
+hart, not the active time accumulated by the physical hart, which includes time
+consumed by the hypervisor and by other virtual machines and is not even
+continuous across a migration of the virtual hart from one physical hart to
+another. The hypervisor therefore maintains a per-virtual-hart value in
+`hacttime`: it saves the value of `hacttime` after each exit from V=1 and writes
+the saved value back before the next entry to V=1. Hardware does not stop
+`hacttime` when V=0; the per-virtual-hart value results from this save and
+restore.
+
+[#norm:hacttime_rw]#`hacttime` is a 64-bit read/write CSR.#
+[#norm:hacttimeh_rw]#On RV32, `hacttimeh` accesses the upper 32 bits of
+`hacttime`, while `hacttime` accesses the low 32 bits.#
+
+[#norm:hacttime_increment]#`hacttime` increments at the reference frequency of
+the active-time counter and under exactly the same conditions, independent of
+the virtualization mode: over any interval in which `hacttime` is not written,
+its increment equals the increment of the active-time counter.#
+[#norm:hacttime_write]#A write to `hacttime` replaces its value; the register
+continues to increment from the written value.#
+[#norm:hacttimeh_write]#On RV32, a write to `hacttimeh` replaces the upper 32
+bits of `hacttime`, leaving the low 32 bits unchanged.#
+[#norm:hacttime_reset]#`hacttime` initializes to 0 on reset.#
+[#norm:hacttime_wrap]#On overflow, `hacttime` wraps to 0 without raising an
+interrupt.#
+
+[#norm:sacttime_reads_hacttime]#When V=1, a read of `sacttime` returns the value
+of `hacttime`.# [#norm:sacttimeh_reads_hacttimeh]#On RV32, when V=1, a read of
+`sacttimeh` returns the value of `hacttimeh`.#
+
+[[ssacttime_delivered_pairing]]
+==== Pairing the Delivered Counter under Virtualization
+
+The frequency-scaling factor is the ratio of the increments of the delivered and
+reference counters, which is meaningful only if both increments cover the same
+execution intervals (<<Smnacttime>>). When V=1 the reference value seen by the
+guest is `hacttime`, which the hypervisor maintains per virtual hart, whereas
+csr:cycle[] is not virtualized and advances for the whole physical hart.
+
+[#norm:hacttime_requires_paired_delivered]#A hypervisor that sets `ATIME` in
+csr:henvcfg[] to 1 MUST ensure that the value a guest obtains for the delivered
+counter covers the same execution intervals as `hacttime`. Because csr:cycle[] is
+not virtualized, this requires that csr:hcounteren[].CY be 0 while `ATIME` in
+csr:henvcfg[] is 1, so that a guest read of csr:cycle[] raises a
+virtual-instruction exception and the hypervisor supplies a per-virtual-hart
+value.#
+
+NOTE: The trap taken on the guest's read of csr:cycle[] does not significantly
+distort the ratio. The hypervisor handles the trap with V=0 and, as for any exit
+from V=1, saves `hacttime` on the way in and restores it on the way out, so most
+of the trap is excluded from the value the guest accumulates. The per-virtual-hart
+delivered value that the hypervisor supplies likewise excludes execution outside
+the virtual hart. A small residual skew remains from two sources: the windows
+between the trap and the hypervisor's save and between its restore and the
+return to V=1, during which the counters still advance and whose lengths need
+not match between `hacttime` and the delivered value; and the guest-mode
+execution between the guest's two reads.
+
+[[ssacttime_access_control]]
+==== Access Control
+
+The `ATIME` bit in csr:menvcfg[] controls access to the active-time CSRs added
+by ext:ssacttime[] from privilege modes less privileged than M-mode. When
+csr:menvcfg[].`ATIME`=1, accesses to `sacttime`, `sacttimeh`, `hacttime`, and
+`hacttimeh` behave as described above. When csr:menvcfg[].`ATIME`=0, an attempt
+to access any of these CSRs from a privilege mode less privileged than M-mode,
+including VS-mode and VU-mode, raises an illegal-instruction exception, and
+csr:henvcfg[].`ATIME` is read-only zero (<<sec:menvcfg>>).
+
+If the H extension is implemented and csr:menvcfg[].`ATIME`=1, the `ATIME` bit
+in csr:henvcfg[] controls access to `sacttime` and `sacttimeh` when V=1. When
+csr:henvcfg[].`ATIME`=1, a read of `sacttime` when V=1 returns the value of
+`hacttime`. When csr:henvcfg[].`ATIME`=0, an attempt to access `sacttime` or
+`sacttimeh` when V=1 raises a virtual-instruction exception (<<sec:henvcfg>>).
+
+[NOTE]
+[%unbreakable]
+====
+_The `hacttime` and `hacttimeh` CSRs are not controlled by
+csr:henvcfg[].`ATIME`. When csr:menvcfg[].`ATIME`=1, attempts to access them
+from VS-mode or VU-mode raise a virtual-instruction exception regardless of
+csr:henvcfg[].`ATIME`, as for any other hypervisor CSR (<<sec:hcauses>>)._
+====

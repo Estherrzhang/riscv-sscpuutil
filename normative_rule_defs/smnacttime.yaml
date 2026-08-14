@@ -1,0 +1,73 @@
+---
+# yaml-language-server: $schema=../docs-resources/schemas/defs-schema.json
+
+$schema: "../docs-resources/schemas/defs-schema.json#"
+
+# Used to create normative rules for smnacttime.adoc file.
+# Tags refer to anchors in any adoc file for any ISA manual.
+
+chapter_name: Smnacttime Extension for Active Time Counting
+
+normative_rule_definitions:
+
+  - name: smnacttime_requires_zicntr
+    summary: Smnacttime requires Zicntr
+    tags: ["norm:smnacttime_requires_zicntr"]
+
+    # Constrained behavior of the cycle counter
+  - name: cycle_pauses_idle
+    summary: The cycle counter does not increment while the hart is idle
+    tags: ["norm:cycle_pauses_idle"]
+  - name: cycle_resumes
+    summary: The cycle counter resumes on leaving the idle state
+    tags: ["norm:cycle_resumes"]
+  - name: cycle_acttime_same_window
+    summary: The cycle and active-time counters must stop over identical intervals
+    tags: ["norm:cycle_acttime_same_window"]
+  - name: cycle_mcountinhibit
+    summary: The cycle counter remains subject to mcountinhibit.CY
+    tags: ["norm:cycle_mcountinhibit"]
+
+    # CSR mnacttime
+  - name: mnacttime_exist
+    summary: Smnacttime adds the read/write machine-level CSR mnacttime
+    tags: ["norm:mnacttime_exist"]
+  - name: mnacttimeh_exist
+    summary: For RV32, Smnacttime adds mnacttimeh
+    tags: ["norm:mnacttimeh_exist"]
+  - name: mnacttime_increment
+    summary: The active-time counter increments at a constant reference frequency while not idle
+    tags: ["norm:mnacttime_increment"]
+  - name: mnacttime_idle
+    summary: The active-time counter does not increment while the hart is idle
+    tags: ["norm:mnacttime_idle"]
+  - name: mnacttime_reset
+    summary: The active-time counter initializes to 0 on reset
+    tags: ["norm:mnacttime_reset"]
+  - name: mnacttime_wrap
+    summary: The active-time counter wraps on overflow without raising an interrupt
+    tags: ["norm:mnacttime_wrap"]
+  - name: mnacttime_not_inhibited
+    summary: The active-time counter is not affected by mcountinhibit
+    tags: ["norm:mnacttime_not_inhibited"]
+  - name: mnacttime_freq_documented
+    summary: The reference frequency must be constant and documented
+    tags: ["norm:mnacttime_freq_documented"]
+  - name: mnacttime_writable
+    summary: A write to mnacttime replaces the counter value and counting continues from it
+    tags: ["norm:mnacttime_writable"]
+  - name: mnacttimeh_writable
+    summary: On RV32 a write to mnacttimeh replaces the upper 32 bits
+    tags: ["norm:mnacttimeh_writable"]
+  - name: mnacttime_shared
+    summary: The active-time counter is shared by exactly the harts that share mcycle
+    tags: ["norm:mnacttime_shared"]
+  - name: mnacttime_shared_write
+    summary: Writes to a shared active-time counter are visible to all sharing harts
+    tags: ["norm:mnacttime_shared_write"]
+  - name: shared_counters_idle
+    summary: Shared counters use the idle state of the sharing harts as a whole
+    tags: ["norm:shared_counters_idle"]
+  - name: mnacttime_rv32_read
+    summary: RV32 atomic read convention for the active-time counter
+    tags: ["norm:mnacttime_rv32_read"]

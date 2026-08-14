@@ -603,6 +603,10 @@ normative_rule_definitions:
   - name: henvcfg_stce
     tag: "norm:henvcfg_stce"
 
+ # Ssacttime extension
+  - name: henvcfg_atime
+    tag: "norm:henvcfg_atime"
+
  # Zicboz extension
   - name: henvcfg_cbze
     tag: "norm:henvcfg_cbze"

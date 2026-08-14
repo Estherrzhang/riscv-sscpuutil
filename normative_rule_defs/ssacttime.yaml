@@ -1,0 +1,73 @@
+---
+# yaml-language-server: $schema=../docs-resources/schemas/defs-schema.json
+
+$schema: "../docs-resources/schemas/defs-schema.json#"
+
+# Used to create normative rules for ssacttime.adoc file.
+# Tags refer to anchors in any adoc file for any ISA manual.
+
+chapter_name: Ssacttime Extension for Supervisor-Level Active Time
+
+normative_rule_definitions:
+
+  - name: ssacttime_exist
+    summary: Ssacttime adds the read-only CSRs sacttime and sacttimeh
+    tags: ["norm:ssacttime_exist"]
+  - name: ssacttime_atime_exist
+    summary: Ssacttime adds the ATIME bit to menvcfg and henvcfg
+    tags: ["norm:ssacttime_atime_exist"]
+  - name: ssacttime_hacttime_exist
+    summary: With the hypervisor extension, Ssacttime adds hacttime and hacttimeh
+    tags: ["norm:ssacttime_hacttime_exist"]
+  - name: ssacttime_requires_smnacttime
+    summary: Ssacttime requires Smnacttime
+    tags: ["norm:ssacttime_requires_smnacttime"]
+
+    # CSR sacttime
+  - name: sacttime_reads_mnacttime
+    summary: When V=0 a read of sacttime returns the hart's active-time counter
+    tags: ["norm:sacttime_reads_mnacttime"]
+  - name: sacttimeh_reads_mnacttimeh
+    summary: On RV32 a read of sacttimeh returns the upper 32 bits of that value
+    tags: ["norm:sacttimeh_reads_mnacttimeh"]
+  - name: sacttime_readonly
+    summary: A write to sacttime or sacttimeh raises an illegal-instruction exception
+    tags: ["norm:sacttime_readonly"]
+  - name: sacttime_rv32_read
+    summary: RV32 atomic read convention for sacttime
+    tags: ["norm:sacttime_rv32_read"]
+  - name: sacttime_no_user_alias
+    summary: Ssacttime adds no user-level alias of the active-time counter
+    tags: ["norm:sacttime_no_user_alias"]
+
+    # CSR hacttime
+  - name: hacttime_rw
+    summary: hacttime is a 64-bit read/write CSR
+    tags: ["norm:hacttime_rw"]
+  - name: hacttimeh_rw
+    summary: On RV32 hacttimeh accesses the upper 32 bits of hacttime
+    tags: ["norm:hacttimeh_rw"]
+  - name: hacttime_increment
+    summary: hacttime increments at the active-time counter's reference frequency and under the same conditions, independent of the virtualization mode
+    tags: ["norm:hacttime_increment"]
+  - name: hacttime_write
+    summary: A write to hacttime replaces its value and counting continues from it
+    tags: ["norm:hacttime_write"]
+  - name: hacttimeh_write
+    summary: On RV32 a write to hacttimeh replaces only the upper 32 bits of hacttime
+    tags: ["norm:hacttimeh_write"]
+  - name: hacttime_reset
+    summary: hacttime initializes to 0 on reset
+    tags: ["norm:hacttime_reset"]
+  - name: hacttime_wrap
+    summary: hacttime wraps on overflow without raising an interrupt
+    tags: ["norm:hacttime_wrap"]
+  - name: sacttime_reads_hacttime
+    summary: When V=1 a read of sacttime returns hacttime
+    tags: ["norm:sacttime_reads_hacttime"]
+  - name: sacttimeh_reads_hacttimeh
+    summary: On RV32 when V=1 a read of sacttimeh returns hacttimeh
+    tags: ["norm:sacttimeh_reads_hacttimeh"]
+  - name: hacttime_requires_paired_delivered
+    summary: A hypervisor setting henvcfg.ATIME must present a paired per-virtual-hart delivered counter
+    tags: ["norm:hacttime_requires_paired_delivered"]

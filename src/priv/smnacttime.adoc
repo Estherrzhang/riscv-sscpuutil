@@ -1,0 +1,139 @@
+[[Smnacttime]]
+=== ext:smnacttime[] Extension for Active Time Counting, Version 1.0
+
+Modern operating-system schedulers require a frequency-invariant measure of
+CPU utilization to drive dynamic voltage and frequency scaling (DVFS)
+governors and task-placement decisions. Computing the effective operating
+frequency requires two counters that advance only while the hart is actively
+executing: a _delivered_ counter that counts actual clock cycles, and a
+_reference_ counter that counts at a fixed frequency. The ratio of their
+increments over an observation window yields the frequency-scaling factor
+without any query to platform firmware.
+
+ext:smnacttime[] provides the reference counter, in the form of the
+_active-time counter_, and constrains the csr:cycle[] counter so that it can
+serve as the delivered counter. The extension name is ext:smnacttime[] ("`Sm`"
+for Privileged arch and Machine-level extensions, "`n`" for the next-lower
+privilege mode, and "`acttime`" for active time). The machine-level alias of the
+counter is named `mnacttime` rather than `macttime` because the counter's value
+is not M-mode's own active time: it belongs to the execution context running
+below M-mode.
+
+[#norm:smnacttime_requires_zicntr]#A hart implementing ext:smnacttime[] MUST
+also implement ext:zicntr[].#
+
+Supervisor-level access to the active-time counter is provided by the
+ext:ssacttime[] extension (<<Ssacttime>>).
+
+==== Constrained Behavior of the csr:cycle[] Counter
+
+When ext:smnacttime[] is implemented, the behavior of the csr:cycle[] counter
+(csr:mcycle[] and its shadows) is constrained as follows.
+
+[#norm:cycle_pauses_idle]#While a hart is in an idle state, the
+csr:cycle[] counter does not increment. A hart is in an idle state during any
+interval in which it has suspended instruction execution because it is waiting
+or halted,
+namely: while execution is suspended as a result of executing a `WFI`
+instruction; while execution is stalled as a result of executing a Zawrs
+wait-on-reservation-set instruction (insn:wrs.nto[] or insn:wrs.sto[]); and while
+the hart is halted in debug mode. The idle state begins when the hart suspends
+execution for one of these reasons and ends when the hart resumes execution.
+This behavior is required regardless of whether the associated clock domain is
+actually gated during the idle state.#
+[#norm:cycle_resumes]#The csr:cycle[] counter resumes incrementing when the hart
+leaves the idle state.# This makes csr:cycle[] a well-defined _delivered
+active-cycle_ counter suitable for use as the numerator in a frequency-ratio
+computation.
+
+[#norm:cycle_acttime_same_window]#The interval during which the
+csr:cycle[] counter does not increment MUST be identical to the interval
+during which the active-time counter does not increment.#
+
+NOTE: The requirement that both counters stop and start over exactly the same
+interval is what makes the ratio of their increments meaningful. If the
+numerator and the denominator were sampled over different windows -- for
+example, if csr:cycle[] stopped at the point the clock was gated but the
+active-time counter stopped when `WFI` retired -- the computed frequency would
+be skewed by the entry and exit latency of every idle period.
+
+[#norm:cycle_mcountinhibit]#The csr:cycle[] counter remains subject to
+csr:mcountinhibit[].CY.# When ext:smnacttime[] is in use, M-mode firmware and
+any hypervisor are expected to ensure csr:mcountinhibit[].CY is 0 during normal
+operation so that counting is not inadvertently inhibited.
+
+NOTE: The RDCYCLE description in ext:zicntr[] already observes, as
+non-normative and execution-environment-specific guidance, that when a core is
+entirely clock-gated it is not executing clock cycles and the cycle count
+should not increase. That guidance is deliberately imprecise and does not
+define a specific idle condition. When ext:smnacttime[] is implemented, this
+behavior becomes normative and is given a precise idle condition (the hart
+having suspended execution because it is waiting or halted, as enumerated above,
+independent of whether the clock is gated), so that csr:cycle[] can be relied
+upon as a delivered active-cycle counter rather than merely being expected to
+behave that way on most platforms.
+
+[[mnacttime_reg]]
+==== Active Time Counter (`mnacttime`)
+
+[#norm:mnacttime_exist]#ext:smnacttime[] adds the 64-bit read/write
+machine-level CSR `mnacttime`, which is the machine-level alias of the hart's
+active-time counter.# [#norm:mnacttimeh_exist]#For RV32, ext:smnacttime[]
+additionally adds `mnacttimeh`, which accesses the upper 32 bits of
+`mnacttime`, while `mnacttime` accesses the low 32 bits.#
+
+[#norm:mnacttime_increment]#The active-time counter increments at a constant,
+implementation-defined reference frequency derived from the same timebase as
+the csr:time[] counter, in all privilege modes, whenever the hart is not in an
+idle state.# [#norm:mnacttime_idle]#The active-time counter does not increment
+while the hart is in an idle state, as defined for the csr:cycle[] counter in
+<<Smnacttime>>.# [#norm:mnacttime_reset]#The active-time counter initializes to
+0 on reset.# [#norm:mnacttime_wrap]#On overflow, the active-time counter wraps
+to 0 without raising an interrupt.# [#norm:mnacttime_not_inhibited]#The
+active-time counter is not affected by csr:mcountinhibit[].#
+
+[#norm:mnacttime_freq_documented]#The reference frequency of the active-time
+counter MUST be constant and MUST be documented by the implementation.# It is
+RECOMMENDED that the reference frequency match that of the csr:time[] counter.
+
+[#norm:mnacttime_writable]#A write to `mnacttime` replaces the value of the
+active-time counter; the counter continues to increment from the written
+value.# [#norm:mnacttimeh_writable]#On RV32, a write to `mnacttimeh` replaces
+the upper 32 bits of the counter, leaving the low 32 bits unchanged.#
+
+==== Harts Sharing a Core
+
+[#norm:mnacttime_shared]#When the csr:mcycle[] CSR is shared between harts on
+the same core, as permitted in <<Hardware Performance Monitor>>, the active-time
+counter MUST be shared between exactly the same harts. Otherwise, each hart has
+its own active-time counter.#
+[#norm:mnacttime_shared_write]#When the active-time counter is shared, a write to
+`mnacttime` or, on RV32, `mnacttimeh` is visible to all harts that share it.#
+
+[#norm:shared_counters_idle]#When the csr:cycle[] counter and the active-time
+counter are shared between harts, the idle state defined in <<Smnacttime>>
+applies to the sharing harts as a whole: the counters do not increment while
+every sharing hart is in an idle state, and increment while at least one of
+them is not.#
+
+NOTE: Sharing the active-time counter between exactly the harts that share
+csr:mcycle[] keeps both counters of the pair stopping and starting over the same
+interval, as required in <<Smnacttime>>. Because the harts of a core run from the
+same clock, the ratio obtained from a shared pair is the frequency at which each
+of those harts executes. The platform mechanism that indicates which harts share
+csr:mcycle[] therefore also indicates which harts share the active-time counter.
+
+==== Reading the Active Time Counter on RV32
+
+On RV32 the 64-bit active-time counter is read in two 32-bit pieces, and the
+counter continues to advance between the two reads, so a carry out of the low
+half that occurs between them would otherwise yield an inconsistent 64-bit
+value.
+
+[#norm:mnacttime_rv32_read]#On RV32, software reads the full 64-bit value of
+the active-time counter using the same atomic read convention defined for the
+csr:cycle[] and csr:time[] counters in ext:zicntr[]: read the upper half, then
+the lower half, then re-read the upper half, and repeat the sequence if the two
+reads of the upper half differ.# The sample code in <<zicntr-rv32-sample>>
+applies unchanged, substituting the `mnacttimeh`/`mnacttime` CSRs for
+`cycleh`/`cycle`.

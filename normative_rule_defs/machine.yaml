@@ -1027,6 +1027,14 @@ normative_rule_definitions:
   - name: menvcfg_dte_op
     tag: "norm:menvcfg_dte_op"
 
+    # Ssacttime extension additions to menvcfg
+  - name: menvcfg_atime_exist
+    tag: "norm:menvcfg_atime_op1"
+  - name: menvcfg_atime_op
+    tag: "norm:menvcfg_atime_op2"
+  - name: menvcfg_atime_rdonly0
+    tag: "norm:menvcfg_atime_rdonly0_op"
+
   # CSR menvcfgh
   - names: [menvcfgh_sz, menvcfgh_acc, menvcfgh_op]
     tag: "norm:menvcfgh_sz_acc_op"
