@@ -1,0 +1,21 @@
+[[sscpuutil]]
+=== CPU Utilization Counter Extensions, Version 1.0
+
+==== Introduction
+
+The CPU Utilization Counter specification (Sscpuutil) defines two extensions:
+ext:smnacttime[] for active-time counting and ext:ssacttime[] for
+supervisor-level access and virtualization.
+
+Modern operating-system schedulers require a frequency-invariant measure of
+CPU utilization to drive dynamic voltage and frequency scaling (DVFS)
+governors and task-placement decisions. Computing the effective operating
+frequency requires two counters that advance only while the hart is actively
+executing: a _delivered_ counter that counts actual clock cycles, and a
+_reference_ counter that counts at a fixed frequency. The ratio of their
+increments over an observation window yields the frequency-scaling factor
+without any query to platform firmware.
+
+include::smnacttime.adoc[leveloffset=+1]
+
+include::ssacttime.adoc[leveloffset=+1]
